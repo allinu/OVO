@@ -123,12 +123,12 @@ def get_tasks():
             return jsonify({"status": "error", "info": "Something wrong."})
 
 
-@app.route("/tasks/<username>", methods=["DELETE"])
-def delete_tasks(username):
+@app.route("/tasks/<alias>", methods=["DELETE"])
+def delete_tasks(alias):
     cursor = conn.cursor()
     if request.method == "DELETE":
         try:
-            sql = "DELETE FROM tasks WHERE username = '%s'" % (username)
+            sql = "DELETE FROM tasks WHERE alias = '%s'" % (alias)
             log.info(sql)
             cursor.execute(sql)
             conn.commit()
