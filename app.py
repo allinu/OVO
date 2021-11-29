@@ -94,7 +94,7 @@ def post_form():
             return jsonify(
                 {
                     "status": "error",
-                    "info": "昵称重复了.",
+                    "info": "昵称重复，或者用户名存在",
                 }
             )
 
