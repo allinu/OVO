@@ -1,6 +1,5 @@
 from flask import Flask, request
 from flask.json import jsonify
-from flask_socketio import SocketIO
 from rich.logging import RichHandler
 import logging
 from logging.handlers import RotatingFileHandler
@@ -24,7 +23,6 @@ log = logging.getLogger("ws_server")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
-socketio = SocketIO(app)
 
 NOTICE_KEY = os.environ.get("NOTICE_KEY")
 
@@ -173,9 +171,13 @@ def update_tasks(username):
 
 
 if __name__ == "__main__":
-    socketio.run(
-        app,
+    app.run(
         host="0.0.0.0",
         port=3000,
         debug=False,
+        # TODO 根据个人情况修改
+        ssl_context=(
+            "./ssl/1_liona.fun_bundle.crt",
+            "./ssl/2_liona.fun.key",
+        ),
     )

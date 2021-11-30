@@ -1,4 +1,4 @@
 {
   "python.formatting.provider": "black",
-  "cSpell.words": ["jsonify", "socketio"]
+  "cSpell.words": ["jsonify", "liona", "socketio"]
 }
