@@ -1,5 +1,10 @@
 FROM python:alpine
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories 
+
+RUN apk add --update tzdata dcron screen gcc linux-headers gcc g++ make libffi-dev openssl-dev libtool \
+    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime 
+
 # workdir
 WORKDIR /app
 
