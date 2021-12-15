@@ -22,6 +22,11 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "liona.fun"
 
 
+@app.route("/",methods=["GET"])
+def index():
+    return jsonify({"msg": "hello"})
+
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
