@@ -20,7 +20,7 @@ logging.basicConfig(
     handlers=[RichHandler(), hander],
 )
 
-log = logging.getLogger("ws_server")
+log = logging.getLogger("server")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
@@ -30,7 +30,8 @@ NOTICE_KEY = os.environ.get("NOTICE_KEY")
 
 def write_to_file():
     cursor = conn.cursor()
-    ans = cursor.execute("SELECT * FROM tasks")
+    ans = cursor.execute("SELECT * FROM sign_task")
+    log.info(ans)
     if NOTICE_KEY:
         tmp = {
             "notifier": ["0", NOTICE_KEY, "AUTO_SIGN"],
@@ -38,18 +39,21 @@ def write_to_file():
         }
     else:
         tmp = {"users": []}
-    for row in ans:
-        tmp["users"].append({
-            "username":
-            row[0],
-            "password":
-            row[1],
-            "school":
-            row[2],
-            "addr": [row[3].split(",")[0], row[3].split(",")[1], row[4]],
-            "alias":
-            row[5],
-        })
+        for row in ans:
+            log.info(row)
+            tmp_addr = []
+            if row[4] == "" and row[5] == "":
+                tmp_addr = [""]
+            else:
+                tmp_addr = [row[4], row[5], row[6]]
+            tmp["users"].append({
+                "alias": row[0],
+                "school": row[1],
+                "username": row[2],
+                "password": row[3],
+                "addr": tmp_addr,
+                "signedDataMonth": row[7],
+            })
 
     with open("./conf.toml", "w", encoding="utf-8") as f:
         f.write(toml.dumps(tmp))
@@ -58,43 +62,33 @@ def write_to_file():
 @app.route("/tasks", methods=["POST"])
 def post_form():
     cursor = conn.cursor()
-    if request.method == "POST":
-        try:
-            data = request.data.decode("utf-8")
-            data = json.loads(data)
-            log.info(data)
-            for value in data.values():
-                if len(str(value)) == 0:
-                    return jsonify({"status": "error", "msg": "请填写完整信息"})
-            username = data["username"]
-            password = data["password"]
-            school = data["school"]
-            gps = data["gps"]
-            gps_loc_name = data["gps_loc_name"]
-            alias = data["alias"]
-            res_data = {
-                "username": username,
-                "password": password,
-                "school": school,
-                "gps": gps,
-                "gps_loc_name": gps_loc_name,
-                "alias": alias,
-            }
-            log.info(res_data)
-            sql = (
-                """INSERT INTO tasks (username, password, school, gps, gps_loc_name, alias) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')"""
-                % (username, password, school, gps, gps_loc_name, alias))
-            log.info(sql)
+    try:
+        data = request.data.decode("utf-8")
+        data = json.loads(data)
+
+        log.info(data)
+
+        if data["alias"] == "" or data['username'] == "" or data['password'] == "" or data['school_id'] == "":
+            return jsonify({"code": 1, "info": "必要数据不完整", "status": "error"})
+        else:
+            sql = "INSERT INTO sign_task (alias,school_id,username,password,location_lon,location_lat,location_name,signedDataMonth) VALUES ('%s','%s','%s','%s','%s','%s','%s','%s')" % (
+                data["alias"], data["school_id"], data["username"], data["password"], data["location_lon"], data["location_lat"], data["location_name"], data["signedDataMonth"])
             cursor.execute(sql)
+            log.info(sql)
             conn.commit()
             write_to_file()
-            return jsonify({"status": "success", "data": res_data})
-        except Exception as e:
-            log.error(e)
             return jsonify({
-                "status": "error",
-                "info": "昵称重复，或者用户名存在",
+                "status": "success",
+                "info": "保存成功",
+                "code": 0
             })
+    except Exception as e:
+        log.error(e)
+        return jsonify({
+            "status": "error",
+            "info": "数据填写不完全，昵称重复，或者用户名存在",
+            "code": 1
+        })
 
 
 @app.route("/tasks", methods=["GET"])
@@ -104,83 +98,62 @@ def get_tasks():
         try:
             data = []
             ans = cursor.execute(
-                "select username, school, gps_loc_name, alias from tasks")
+                "select alias,school_id,location_name from sign_task")
             for row in ans:
                 data.append({
-                    "username": row[0][:3] + 4 * "_" + row[0][-4:],
-                    "school": row[1],
-                    "gps_loc_name": row[2],
-                    "alias": row[3],
+                    "alias": row[0],
+                    "school_id": row[1],
+                    "location_name": row[2],
                 })
             log.info(data)
-            return jsonify({"status": "success", "data": data})
+            return jsonify({"status": "success", "data": data, "code": 0, "info": "获取成功"})
         except Exception as e:
-            return jsonify({"status": "error", "info": "Something wrong."})
+            return jsonify({"status": "error", "info": "获取失败", "code": 1})
 
+@app.route("/tasks/<username>",methods=["GET"])
+def get_info(username):
+    cursor = conn.cursor()
+    if request.method == "GET":
+        try:
+            data = []
+            ans = cursor.execute(
+                "select alias,school_id,location_name from sign_task where username = '%s'"%username)
+            for row in ans:
+                data.append({
+                    "alias": row[0],
+                    "school_id": row[1],
+                    "location_name": row[2],
+                })
+            log.info(data)
+            if len(data) == 0:
+                return jsonify({"status": "error", "info": "用户不存在", "code": 1})
+            else:
+                return jsonify({"status": "success", "data": data, "code": 0, "info": "用户存在"})
+        except Exception as e:
+            return jsonify({"status": "error", "info": "获取失败", "code": 1})
 
-@app.route("/tasks/<alias>", methods=["DELETE"])
-def delete_tasks(alias):
+@app.route("/tasks/<username>", methods=["DELETE"])
+def delete_tasks(username):
     cursor = conn.cursor()
     if request.method == "DELETE":
         try:
-            sql = "DELETE FROM tasks WHERE alias = '%s'" % (alias)
+            sql = "DELETE FROM sign_task WHERE username = '%s'" % (username)
             log.info(sql)
             cursor.execute(sql)
             conn.commit()
             write_to_file()
-            return jsonify({"status": "success"})
+            return jsonify({
+                "code": 0,
+                "info": "删除成功",
+                "status": "success"
+            })
         except Exception as e:
-            return jsonify({"status": "error", "info": "Something wrong."})
-
-
-@app.route("/tasks/<username>", methods=["PUT"])
-def update_tasks(username):
-    cursor = conn.cursor()
-    if request.method == "PUT":
-        try:
-            data = request.form
-            log.info(data)
-            password = data["password"]
-            school = data["school"]
-            gps = data["gps"]
-            gps_loc_name = data["gps_loc_name"]
-            alias = data["alias"]
-            res_data = {
-                "username": username,
-                "password": password,
-                "school": school,
-                "gps": gps,
-                "gps_loc_name": gps_loc_name,
-                "alias": alias,
-            }
-            log.info(res_data)
-            sql = (
-                """UPDATE tasks SET password = '%s', school = '%s', gps = '%s', gps_loc_name = '%s', alias = '%s' WHERE username = '%s'"""
-                % (password, school, gps, gps_loc_name, alias, username))
-            log.info(sql)
-            cursor.execute(sql)
-            conn.commit()
-            write_to_file()
-            return jsonify({"status": "success", "data": res_data})
-        except Exception:
-            return jsonify({"status": "error", "info": "Incomplete data"})
+            return jsonify({"status": "error", "info": "Something wrong.", "code": 1})
 
 
 if __name__ == "__main__":
     app.run(
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=3000,
         debug=True,
     )
-
-# if __name__ == "__main__":
-#     app.run(
-#         host="0.0.0.0",
-#         port=3000,
-#         debug=False,
-#         # TODO 根据个人情况修改
-#         ssl_context=(
-#             "./ssl/1_liona.fun_bundle.crt",
-#             "./ssl/2_liona.fun.key",
-#         ),
-#     )

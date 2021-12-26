@@ -517,3 +517,5 @@ $RECYCLE.BIN/
 
 ssl/*
 !.gitkeep
+data.db
+conf.toml
