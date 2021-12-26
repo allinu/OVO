@@ -55,7 +55,7 @@ def write_to_file():
                 "signedDataMonth": row[7],
             })
 
-    with open("./conf.toml", "w", encoding="utf-8") as f:
+    with open("./config/conf.toml", "w", encoding="utf-8") as f:
         f.write(toml.dumps(tmp))
 
 
