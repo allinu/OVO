@@ -12,5 +12,6 @@ RUN pip install -i https://mirrors.ustc.edu.cn/pypi/web/simple -U pip \
 EXPOSE 3000
 
 VOLUME [ "/app/config" ]
+VOLUME [ "/app/db" ]
 
 CMD [ "/usr/local/bin/python", "app.py" ]
