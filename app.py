@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flask.json import jsonify
+from markupsafe import re
 from rich.logging import RichHandler
 import logging
 from logging.handlers import RotatingFileHandler
@@ -153,8 +154,10 @@ def delete_tasks(username):
 def wechat():
     if request.method == "GET":
         log.info(request)
+        return request
     else:
         log.info(request)
+        return request
 
 
 if __name__ == "__main__":
