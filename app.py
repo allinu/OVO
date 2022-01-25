@@ -58,7 +58,6 @@ def write_to_file():
     with open("./config/conf.toml", "w", encoding="utf-8") as f:
         f.write(toml.dumps(tmp))
 
-
 @app.route("/tasks", methods=["POST"])
 def post_form():
     cursor = conn.cursor()
@@ -89,7 +88,6 @@ def post_form():
             "info": "数据填写不完全，昵称重复，或者用户名存在",
             "code": 1
         })
-
 
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
@@ -149,6 +147,14 @@ def delete_tasks(username):
             })
         except Exception as e:
             return jsonify({"status": "error", "info": "Something wrong.", "code": 1})
+
+
+@app.route("/wechat", methods=["GET", "POST"])
+def wechat():
+    if request.method == "GET":
+        log.info(request)
+    else:
+        log.info(request)
 
 
 if __name__ == "__main__":
