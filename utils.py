@@ -26,6 +26,7 @@ logging.basicConfig(
 log = logging.getLogger("utils")
 
 # Set your own appid/appkey.
+# 免费的 API 请用自己的 appid 和 appkey
 appid = '20180913000206313'
 appkey = '2OVyXCP2sBdBLLEsq2Nf'
 
